@@ -122,6 +122,8 @@ kairun-claude-config/
 │   ├── kairun-review-orchestrator.md
 │   └── kairun-plan-tracker.md
 ├── skills/                          # Skills (future expansion)
+├── init-prompts/                    # Original prompts used for creating agents/skills
+│                                    # (Not installed/uninstalled)
 ├── install.sh                       # Installation script
 ├── uninstall.sh                     # Uninstallation script
 └── README.md                        # This file
