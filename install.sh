@@ -32,7 +32,6 @@ fi
 echo -e "${BLUE}→${NC} Ensuring Claude Code directories exist..."
 mkdir -p "$CLAUDE_CONFIG_DIR/agents"
 mkdir -p "$CLAUDE_CONFIG_DIR/skills"
-mkdir -p "$CLAUDE_CONFIG_DIR/init-prompts"
 
 # Function to create symlink safely
 create_symlink() {
@@ -89,23 +88,78 @@ else
     echo -e "  ${YELLOW}No skills found to install${NC}"
 fi
 
-# Install init prompts (only kairun-* files, not documentation files)
+# Install SessionStart hook
 echo ""
-echo -e "${BLUE}→${NC} Installing session initialization prompts..."
-init_prompt_count=0
-if [ -d "$SCRIPT_DIR/init-prompts" ]; then
-    for init_prompt_file in "$SCRIPT_DIR/init-prompts"/kairun-*.md; do
-        if [ -f "$init_prompt_file" ]; then
-            init_prompt_name=$(basename "$init_prompt_file")
-            create_symlink "$init_prompt_file" "$CLAUDE_CONFIG_DIR/init-prompts/$init_prompt_name" "$init_prompt_name"
-            ((init_prompt_count++))
-        fi
-    done
-    if [ $init_prompt_count -eq 0 ]; then
-        echo -e "  ${YELLOW}No kairun-*.md init prompts found${NC}"
+echo -e "${BLUE}→${NC} Installing SessionStart hook..."
+hook_installed=false
+
+if [ -f "$SCRIPT_DIR/hooks/session-start-hook.sh" ]; then
+    SETTINGS_FILE="$CLAUDE_CONFIG_DIR/settings.json"
+    HOOK_PATH="$SCRIPT_DIR/hooks/session-start-hook.sh"
+
+    # Create settings.json if it doesn't exist
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        echo '{}' > "$SETTINGS_FILE"
+    fi
+
+    # Backup existing settings
+    cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup.$(date +%Y%m%d_%H%M%S)"
+
+    # Use Python to merge the hook configuration
+    python3 <<EOF
+import json
+import sys
+
+settings_file = "$SETTINGS_FILE"
+hook_path = "$HOOK_PATH"
+
+try:
+    with open(settings_file, 'r') as f:
+        settings = json.load(f)
+except:
+    settings = {}
+
+# Ensure hooks object exists
+if 'hooks' not in settings:
+    settings['hooks'] = {}
+
+# Ensure SessionStart array exists
+if 'SessionStart' not in settings['hooks']:
+    settings['hooks']['SessionStart'] = []
+
+# Check if our hook already exists
+hook_exists = False
+for hook_group in settings['hooks']['SessionStart']:
+    if 'hooks' in hook_group:
+        for hook in hook_group['hooks']:
+            if hook.get('command') == hook_path:
+                hook_exists = True
+                break
+
+# Add our hook if it doesn't exist
+if not hook_exists:
+    settings['hooks']['SessionStart'].append({
+        "hooks": [{
+            "type": "command",
+            "command": hook_path
+        }]
+    })
+
+# Write back to file
+with open(settings_file, 'w') as f:
+    json.dump(settings, f, indent=2)
+
+print("success")
+EOF
+
+    if [ $? -eq 0 ]; then
+        echo -e "  ${GREEN}✓${NC} SessionStart hook installed"
+        hook_installed=true
+    else
+        echo -e "  ${RED}✗${NC} Failed to install SessionStart hook"
     fi
 else
-    echo -e "  ${YELLOW}No init-prompts directory found${NC}"
+    echo -e "  ${YELLOW}No hook script found${NC}"
 fi
 
 # Summary
@@ -117,14 +171,16 @@ echo ""
 echo -e "${BLUE}Installed:${NC}"
 echo -e "  • $agent_count sub-agent(s)"
 echo -e "  • $skill_count skill(s)"
-echo -e "  • $init_prompt_count init prompt(s)"
+if [ "$hook_installed" = true ]; then
+    echo -e "  • SessionStart hook"
+fi
 echo ""
 echo -e "${BLUE}Configuration location:${NC} $CLAUDE_CONFIG_DIR"
 echo ""
 echo -e "${YELLOW}Note:${NC} Changes will be available in your next Claude Code session."
 echo -e "Run ${GREEN}claude /agents${NC} to see your installed sub-agents."
 echo ""
-if [ $init_prompt_count -gt 0 ]; then
+if [ "$hook_installed" = true ]; then
     echo -e "${GREEN}✨ Session initialization enabled!${NC}"
     echo -e "   Claude will now automatically load working memory at session start."
     echo ""

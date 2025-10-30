@@ -60,8 +60,8 @@ cd kairun-claude-config
 ```
 
 The install script will:
-1. Create symlinks from this repo to `~/.claude/agents/` and `~/.claude/init-prompts/`
-2. Install a session initialization prompt that loads working memory automatically
+1. Create symlinks from this repo to `~/.claude/agents/` and `~/.claude/skills/`
+2. Install a SessionStart hook into `~/.claude/settings.json` that loads working memory automatically
 3. Preserve any existing files by creating backups
 4. Show you a summary of what was installed
 
@@ -91,9 +91,9 @@ The agents use a **shared memory architecture** through the `.kairun/` directory
 Claude Code automatically invokes agents when appropriate:
 
 ```bash
-# 1. Session start - working-memory-manager activates automatically via init prompt
+# 1. Session start - working-memory-manager activates automatically via SessionStart hook
 claude "Let's work on adding authentication"
-# → Session init prompt instructs Claude to use kairun-working-memory-manager
+# → SessionStart hook injects context instructing Claude to use kairun-working-memory-manager
 # → kairun-working-memory-manager checks/creates .kairun/working-memory.md
 # → Context from previous sessions is loaded automatically
 
@@ -159,8 +159,8 @@ You can:
 
 1. **Modify existing agents**: Edit the `.md` files in `agents/` directly
 2. **Add new agents**: Create new `.md` files in `agents/` with proper YAML frontmatter (use `kairun-` prefix)
-3. **Add new init prompts**: Create new `.md` files in `init-prompts/` with `kairun-` prefix
-4. **Adjust behavior**: Update the `description` field to change when agents are invoked
+3. **Adjust behavior**: Update the `description` field to change when agents are invoked
+4. **Modify SessionStart hook**: Edit `hooks/session-start-hook.sh` to change session initialization behavior
 5. **Reference original prompts**: Check `AGENT_CREATION_PROMPTS.md` for the design rationale
 
 After making changes, your updates will be reflected immediately since the files are symlinked.
@@ -172,28 +172,34 @@ cd kairun-claude-config
 ./uninstall.sh
 ```
 
-This will remove all symlinks created by the installer. Your original files (if any were backed up) will remain in `~/.claude/agents/*.backup.*`.
+This will:
+- Remove all agent symlinks created by the installer
+- Remove the SessionStart hook from `~/.claude/settings.json`
+- Preserve backups of your original files in `~/.claude/agents/*.backup.*` and `~/.claude/settings.json.backup.*`
 
 ## Project Structure
 
 ```
 kairun-claude-config/
-├── agents/                          # Sub-agent definitions (all installed)
+├── agents/                          # Sub-agent definitions (symlinked to ~/.claude/agents/)
 │   ├── kairun-working-memory-manager.md
 │   ├── kairun-code-practices-enforcer.md
 │   ├── kairun-security-reviewer.md
 │   ├── kairun-review-orchestrator.md
 │   └── kairun-plan-tracker.md
+├── hooks/                           # Claude Code hooks
+│   └── session-start-hook.sh        # SessionStart hook (installed to ~/.claude/settings.json)
 ├── skills/                          # Skills (future expansion)
-├── init-prompts/                    # Session initialization prompts (all installed)
-│   └── kairun-session-init.md       # Loads working memory at session start
 ├── AGENT_CREATION_PROMPTS.md        # Original prompts used to create agents (documentation)
 ├── install.sh                       # Installation script
 ├── uninstall.sh                     # Uninstallation script
 └── README.md                        # This file
 ```
 
-**Note**: Only files with the `kairun-` prefix are installed. Documentation files remain in the repo for reference.
+**Note**:
+- Agent files with `kairun-` prefix are symlinked to `~/.claude/agents/`
+- The SessionStart hook is registered in `~/.claude/settings.json`
+- Documentation files remain in the repo for reference
 
 ## Why Symlinks?
 

@@ -79,24 +79,101 @@ else
     echo -e "  ${YELLOW}No skills found${NC}"
 fi
 
-# Uninstall init prompts (only kairun-* files)
+# Uninstall SessionStart hook
 echo ""
-echo -e "${BLUE}→${NC} Removing session initialization prompts..."
-init_prompt_count=0
-if [ -d "$CLAUDE_CONFIG_DIR/init-prompts" ]; then
-    for init_prompt_file in "$CLAUDE_CONFIG_DIR/init-prompts"/kairun-*.md; do
-        if [ -L "$init_prompt_file" ]; then
-            init_prompt_name=$(basename "$init_prompt_file")
-            if remove_symlink "$init_prompt_file" "$init_prompt_name"; then
-                ((init_prompt_count++))
-            fi
-        fi
-    done
-    if [ $init_prompt_count -eq 0 ]; then
-        echo -e "  ${YELLOW}No kairun-*.md init prompts found${NC}"
+echo -e "${BLUE}→${NC} Removing SessionStart hook..."
+hook_removed=false
+
+SETTINGS_FILE="$CLAUDE_CONFIG_DIR/settings.json"
+HOOK_PATH="$SCRIPT_DIR/hooks/session-start-hook.sh"
+
+if [ -f "$SETTINGS_FILE" ]; then
+    # Backup existing settings
+    cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup.$(date +%Y%m%d_%H%M%S)"
+
+    # Use Python to remove the hook
+    python3 <<EOF
+import json
+
+settings_file = "$SETTINGS_FILE"
+hook_path = "$HOOK_PATH"
+
+try:
+    with open(settings_file, 'r') as f:
+        settings = json.load(f)
+
+    if 'hooks' in settings and 'SessionStart' in settings['hooks']:
+        # Filter out our hook
+        original_length = len(settings['hooks']['SessionStart'])
+        settings['hooks']['SessionStart'] = [
+            hook_group for hook_group in settings['hooks']['SessionStart']
+            if not any(
+                hook.get('command') == hook_path
+                for hook in hook_group.get('hooks', [])
+            )
+        ]
+
+        # Clean up empty arrays
+        if len(settings['hooks']['SessionStart']) == 0:
+            del settings['hooks']['SessionStart']
+        if len(settings['hooks']) == 0:
+            del settings['hooks']
+
+        # Write back
+        with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+
+        if len(settings.get('hooks', {}).get('SessionStart', [])) < original_length:
+            print("removed")
+        else:
+            print("not_found")
+    else:
+        print("not_found")
+except Exception as e:
+    print(f"error: {e}")
+EOF
+
+    result=$?
+    output=$(python3 <<EOF
+import json
+settings_file = "$SETTINGS_FILE"
+hook_path = "$HOOK_PATH"
+try:
+    with open(settings_file, 'r') as f:
+        settings = json.load(f)
+    if 'hooks' in settings and 'SessionStart' in settings['hooks']:
+        original_length = len(settings['hooks']['SessionStart'])
+        settings['hooks']['SessionStart'] = [
+            hook_group for hook_group in settings['hooks']['SessionStart']
+            if not any(hook.get('command') == hook_path for hook in hook_group.get('hooks', []))
+        ]
+        if len(settings['hooks']['SessionStart']) == 0:
+            del settings['hooks']['SessionStart']
+        if len(settings['hooks']) == 0:
+            del settings['hooks']
+        with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+        if len(settings.get('hooks', {}).get('SessionStart', [])) < original_length:
+            print("removed")
+        else:
+            print("not_found")
+    else:
+        print("not_found")
+except Exception as e:
+    print(f"error")
+EOF
+)
+
+    if [ "$output" = "removed" ]; then
+        echo -e "  ${GREEN}✓${NC} SessionStart hook removed"
+        hook_removed=true
+    elif [ "$output" = "not_found" ]; then
+        echo -e "  ${YELLOW}⊘${NC} SessionStart hook not found"
+    else
+        echo -e "  ${RED}✗${NC} Failed to remove SessionStart hook"
     fi
 else
-    echo -e "  ${YELLOW}No init-prompts directory found${NC}"
+    echo -e "  ${YELLOW}⊘${NC} No settings.json found"
 fi
 
 # Summary
@@ -108,7 +185,9 @@ echo ""
 echo -e "${BLUE}Removed:${NC}"
 echo -e "  • $agent_count sub-agent(s)"
 echo -e "  • $skill_count skill(s)"
-echo -e "  • $init_prompt_count init prompt(s)"
+if [ "$hook_removed" = true ]; then
+    echo -e "  • SessionStart hook"
+fi
 echo ""
 echo -e "${YELLOW}Note:${NC} Changes will take effect in your next Claude Code session."
 echo ""
