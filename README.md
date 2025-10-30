@@ -4,7 +4,7 @@ A curated collection of sub-agents for Claude Code that enhance your development
 
 ## What's Included
 
-This configuration package provides 4 powerful sub-agents:
+This configuration package provides 5 powerful sub-agents:
 
 ### 🧠 kairun-working-memory-manager
 Maintains project context across development sessions through `.kairun/working-memory.md`. Automatically tracks:
@@ -30,6 +30,13 @@ Enforces language-specific best practices and coding standards:
 
 ### 🎯 kairun-review-orchestrator
 Coordinates comprehensive code reviews by running multiple reviewer agents in parallel and compiling their feedback into actionable insights.
+
+### 📋 kairun-plan-tracker
+Maintains implementation plans and tracks project progress through `.kairun/plans-and-todos.md`. Automatically:
+- Records initial implementation plans
+- Updates plans as work progresses
+- Tracks completed tasks and new requirements
+- Maintains project direction and priorities
 
 ## Installation
 
@@ -112,7 +119,8 @@ kairun-claude-config/
 │   ├── kairun-working-memory-manager.md
 │   ├── kairun-code-practices-enforcer.md
 │   ├── kairun-security-reviewer.md
-│   └── kairun-review-orchestrator.md
+│   ├── kairun-review-orchestrator.md
+│   └── kairun-plan-tracker.md
 ├── skills/                          # Skills (future expansion)
 ├── install.sh                       # Installation script
 ├── uninstall.sh                     # Uninstallation script
