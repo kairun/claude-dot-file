@@ -34,17 +34,11 @@ remove_symlink() {
     local name=$2
 
     if [ -L "$target" ]; then
-        local link_source=$(readlink "$target")
-        if [[ "$link_source" == "$SCRIPT_DIR"* ]]; then
-            rm "$target"
-            echo -e "  ${GREEN}✓${NC} Removed $name"
-            return 0
-        else
-            echo -e "  ${YELLOW}⊘${NC} $name (not managed by this installer, skipping)"
-            return 1
-        fi
+        rm "$target"
+        echo -e "  ${GREEN}✓${NC} Removed $name"
+        return 0
     elif [ -e "$target" ]; then
-        echo -e "  ${YELLOW}⊘${NC} $name (not a symlink, skipping)"
+        echo -e "  ${YELLOW}⊘${NC} $name (exists but not a symlink, skipping)"
         return 1
     else
         echo -e "  ${YELLOW}⊘${NC} $name (not found)"
