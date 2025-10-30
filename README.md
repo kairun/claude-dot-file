@@ -60,9 +60,10 @@ cd kairun-claude-config
 ```
 
 The install script will:
-1. Create symlinks from this repo to `~/.claude/agents/`
-2. Preserve any existing files by creating backups
-3. Show you a summary of what was installed
+1. Create symlinks from this repo to `~/.claude/agents/` and `~/.claude/init-prompts/`
+2. Install a session initialization prompt that loads working memory automatically
+3. Preserve any existing files by creating backups
+4. Show you a summary of what was installed
 
 ### Verify Installation
 
@@ -90,9 +91,11 @@ The agents use a **shared memory architecture** through the `.kairun/` directory
 Claude Code automatically invokes agents when appropriate:
 
 ```bash
-# 1. Session start - working-memory-manager activates automatically
+# 1. Session start - working-memory-manager activates automatically via init prompt
 claude "Let's work on adding authentication"
+# → Session init prompt instructs Claude to use kairun-working-memory-manager
 # → kairun-working-memory-manager checks/creates .kairun/working-memory.md
+# → Context from previous sessions is loaded automatically
 
 # 2. After implementing code - orchestrator runs review
 claude "I've added the login endpoint"
@@ -150,14 +153,15 @@ Main Process
 
 ## Customization
 
-All agent files are in the `agents/` directory as Markdown files with YAML frontmatter. The `init-prompts/` directory contains the original prompts used to create each agent.
+All agent files are in the `agents/` directory as Markdown files with YAML frontmatter. The `AGENT_CREATION_PROMPTS.md` file in the root contains the original prompts and design rationale used to create each agent.
 
 You can:
 
 1. **Modify existing agents**: Edit the `.md` files in `agents/` directly
-2. **Add new agents**: Create new `.md` files in `agents/` with proper YAML frontmatter
-3. **Adjust behavior**: Update the `description` field to change when agents are invoked
-4. **Reference original prompts**: Check `init-prompts/init-prompt.md` for the design rationale
+2. **Add new agents**: Create new `.md` files in `agents/` with proper YAML frontmatter (use `kairun-` prefix)
+3. **Add new init prompts**: Create new `.md` files in `init-prompts/` with `kairun-` prefix
+4. **Adjust behavior**: Update the `description` field to change when agents are invoked
+5. **Reference original prompts**: Check `AGENT_CREATION_PROMPTS.md` for the design rationale
 
 After making changes, your updates will be reflected immediately since the files are symlinked.
 
@@ -174,19 +178,22 @@ This will remove all symlinks created by the installer. Your original files (if 
 
 ```
 kairun-claude-config/
-├── agents/                          # Sub-agent definitions
+├── agents/                          # Sub-agent definitions (all installed)
 │   ├── kairun-working-memory-manager.md
 │   ├── kairun-code-practices-enforcer.md
 │   ├── kairun-security-reviewer.md
 │   ├── kairun-review-orchestrator.md
 │   └── kairun-plan-tracker.md
 ├── skills/                          # Skills (future expansion)
-├── init-prompts/                    # Original prompts used for creating agents/skills
-│                                    # (Not installed/uninstalled)
+├── init-prompts/                    # Session initialization prompts (all installed)
+│   └── kairun-session-init.md       # Loads working memory at session start
+├── AGENT_CREATION_PROMPTS.md        # Original prompts used to create agents (documentation)
 ├── install.sh                       # Installation script
 ├── uninstall.sh                     # Uninstallation script
 └── README.md                        # This file
 ```
+
+**Note**: Only files with the `kairun-` prefix are installed. Documentation files remain in the repo for reference.
 
 ## Why Symlinks?
 

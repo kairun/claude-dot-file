@@ -79,6 +79,26 @@ else
     echo -e "  ${YELLOW}No skills found${NC}"
 fi
 
+# Uninstall init prompts (only kairun-* files)
+echo ""
+echo -e "${BLUE}→${NC} Removing session initialization prompts..."
+init_prompt_count=0
+if [ -d "$CLAUDE_CONFIG_DIR/init-prompts" ]; then
+    for init_prompt_file in "$CLAUDE_CONFIG_DIR/init-prompts"/kairun-*.md; do
+        if [ -L "$init_prompt_file" ]; then
+            init_prompt_name=$(basename "$init_prompt_file")
+            if remove_symlink "$init_prompt_file" "$init_prompt_name"; then
+                ((init_prompt_count++))
+            fi
+        fi
+    done
+    if [ $init_prompt_count -eq 0 ]; then
+        echo -e "  ${YELLOW}No kairun-*.md init prompts found${NC}"
+    fi
+else
+    echo -e "  ${YELLOW}No init-prompts directory found${NC}"
+fi
+
 # Summary
 echo ""
 echo -e "${GREEN}╔════════════════════════════════════════╗${NC}"
@@ -88,6 +108,7 @@ echo ""
 echo -e "${BLUE}Removed:${NC}"
 echo -e "  • $agent_count sub-agent(s)"
 echo -e "  • $skill_count skill(s)"
+echo -e "  • $init_prompt_count init prompt(s)"
 echo ""
 echo -e "${YELLOW}Note:${NC} Changes will take effect in your next Claude Code session."
 echo ""
