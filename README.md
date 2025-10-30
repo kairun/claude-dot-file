@@ -4,38 +4,42 @@ A curated collection of sub-agents for Claude Code that enhance your development
 
 ## What's Included
 
-This configuration package provides 5 powerful sub-agents:
+This configuration package provides 5 powerful sub-agents that work together through a shared `.kairun/` directory:
 
 ### 🧠 kairun-working-memory-manager
-Maintains project context across development sessions through `.kairun/working-memory.md`. Automatically tracks:
+The central memory hub that maintains project context across development sessions. Automatically invoked at session start and after every task completion. Manages `.kairun/working-memory.md` (read by all other agents):
 - Current tasks and progress
 - Important architectural decisions
 - Key discoveries and insights
 - Next steps and open questions
+- Handles manual memory reset/clear requests
+
+### 🎯 kairun-review-orchestrator
+The primary entry point for all code reviews. Coordinates comprehensive reviews by launching security-reviewer and code-practices-enforcer agents **simultaneously in parallel**, then compiling their feedback into unified, actionable insights. Use this agent for code reviews, not the individual reviewers.
 
 ### 🔒 kairun-security-reviewer
-Reviews code changes for security vulnerabilities including:
+Security review specialist invoked **only by the orchestrator** (not directly). Reviews code changes for vulnerabilities:
 - Authentication/authorization issues
 - SQL injection risks
 - Secrets management problems
 - Input validation gaps
 - Certificate handling flaws
+- Returns findings to orchestrator for compilation
 
 ### ✨ kairun-code-practices-enforcer
-Enforces language-specific best practices and coding standards:
+Code quality specialist invoked **only by the orchestrator** (not directly). Enforces language-specific best practices:
 - Idiomatic code patterns
 - Error handling consistency
 - Performance optimizations
 - Code organization and structure
-
-### 🎯 kairun-review-orchestrator
-Coordinates comprehensive code reviews by running multiple reviewer agents in parallel and compiling their feedback into actionable insights.
+- Returns findings to orchestrator for compilation
 
 ### 📋 kairun-plan-tracker
-Maintains implementation plans and tracks project progress through `.kairun/plans-and-todos.md`. Automatically:
+Maintains implementation plans and tracks project progress through `.kairun/plans-and-todos.md`:
 - Records initial implementation plans
 - Updates plans as work progresses
 - Tracks completed tasks and new requirements
+- Cross-references working memory for context
 - Maintains project direction and priorities
 
 ## Installation
@@ -72,33 +76,88 @@ You should see all the `kairun-*` agents listed.
 
 ## Usage
 
-Claude Code will automatically invoke these agents when appropriate based on their descriptions. You can also explicitly request them:
+### How Agents Coordinate
+
+The agents use a **shared memory architecture** through the `.kairun/` directory:
+
+- **`.kairun/working-memory.md`**: Central shared memory managed exclusively by `working-memory-manager`. All other agents read from it for context but never edit it.
+- **`.kairun/plans-and-todos.md`**: Implementation plans managed exclusively by `plan-tracker`.
+
+**Note**: Add `.kairun/` to your project's `.gitignore` to keep session context local.
+
+### Agent Invocation Flow
+
+Claude Code automatically invokes agents when appropriate:
 
 ```bash
-# Explicitly invoke an agent
-claude "Use the kairun-security-reviewer to check this code"
+# 1. Session start - working-memory-manager activates automatically
+claude "Let's work on adding authentication"
+# → kairun-working-memory-manager checks/creates .kairun/working-memory.md
 
-# The agents work proactively
-claude "Add a new authentication endpoint"
-# → Claude will automatically use kairun-security-reviewer after implementation
+# 2. After implementing code - orchestrator runs review
+claude "I've added the login endpoint"
+# → kairun-review-orchestrator launches in parallel:
+#    - kairun-security-reviewer (checks for vulnerabilities)
+#    - kairun-code-practices-enforcer (checks code quality)
+# → Orchestrator compiles findings and returns to main process
+# → kairun-working-memory-manager records results
+
+# 3. Manual memory operations
+claude "Reset working memory"
+# → kairun-working-memory-manager handles reset with user options
+
+# 4. Planning sessions
+claude "Let's plan the database migration"
+# → kairun-plan-tracker creates/updates .kairun/plans-and-todos.md
 ```
 
-### Working Memory
+### Direct Agent Usage
 
-The working memory manager creates a `.kairun/working-memory.md` file in your project to track context. To initialize it:
+For code reviews, always use the orchestrator (not individual reviewers):
 
 ```bash
-claude "Let's start working on the authentication feature"
-# → kairun-working-memory-manager will automatically create and maintain the file
+# ✅ Correct - use orchestrator
+claude "Review my authentication code"
+# → Uses kairun-review-orchestrator
+
+# ❌ Incorrect - don't invoke reviewers directly
+claude "Use kairun-security-reviewer to check this"
+# → Security/practices agents should only be invoked by orchestrator
+```
+
+## Architecture
+
+### Shared Memory Design
+
+```
+.kairun/
+├── working-memory.md    # Managed by: working-memory-manager (write)
+│                        # Read by: ALL agents for context
+└── plans-and-todos.md   # Managed by: plan-tracker (write)
+                         # Read by: plan-tracker only
+```
+
+### Agent Relationships
+
+```
+Main Process
+    ├─→ working-memory-manager (session start, after every task)
+    ├─→ review-orchestrator (after code changes)
+    │   ├─→ security-reviewer (parallel)
+    │   └─→ code-practices-enforcer (parallel)
+    └─→ plan-tracker (planning sessions)
 ```
 
 ## Customization
 
-All agent files are in the `agents/` directory as Markdown files with YAML frontmatter. You can:
+All agent files are in the `agents/` directory as Markdown files with YAML frontmatter. The `init-prompts/` directory contains the original prompts used to create each agent.
 
-1. **Modify existing agents**: Edit the `.md` files directly
-2. **Add new agents**: Create new `.md` files in `agents/`
+You can:
+
+1. **Modify existing agents**: Edit the `.md` files in `agents/` directly
+2. **Add new agents**: Create new `.md` files in `agents/` with proper YAML frontmatter
 3. **Adjust behavior**: Update the `description` field to change when agents are invoked
+4. **Reference original prompts**: Check `init-prompts/init-prompt.md` for the design rationale
 
 After making changes, your updates will be reflected immediately since the files are symlinked.
 
