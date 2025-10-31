@@ -62,8 +62,7 @@ cd kairun-claude-config
 The install script will:
 1. Create symlinks from this repo to `~/.claude/agents/` and `~/.claude/skills/`
 2. Install a SessionStart hook into `~/.claude/settings.json` that loads working memory automatically
-3. Preserve any existing files by creating backups
-4. Show you a summary of what was installed
+3. Show you a summary of what was installed
 
 ### Verify Installation
 
@@ -175,7 +174,6 @@ cd kairun-claude-config
 This will:
 - Remove all agent symlinks created by the installer
 - Remove the SessionStart hook from `~/.claude/settings.json`
-- Preserve backups of your original files in `~/.claude/agents/*.backup.*` and `~/.claude/settings.json.backup.*`
 
 ## Project Structure
 
@@ -219,9 +217,7 @@ Using symlinks means:
 
 ### Symlink conflicts?
 
-The installer automatically backs up existing files to `*.backup.TIMESTAMP`. You can:
-- Restore backups: `mv ~/.claude/agents/file.backup.* ~/.claude/agents/file`
-- Remove backups: `rm ~/.claude/agents/*.backup.*`
+If you have an existing file (not a symlink) with the same name as a kairun agent, the installer will skip it and show an error. Since all agents are namespaced with `kairun-`, conflicts should be rare.
 
 ## Contributing
 

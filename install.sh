@@ -48,8 +48,8 @@ create_symlink() {
             rm "$target"
         fi
     elif [ -e "$target" ]; then
-        echo -e "  ${YELLOW}⚠${NC} $name (backing up existing file)"
-        mv "$target" "${target}.backup.$(date +%Y%m%d_%H%M%S)"
+        echo -e "  ${RED}✗${NC} $name (file exists but not a symlink, skipping)"
+        return 1
     fi
 
     ln -s "$source" "$target"
@@ -101,9 +101,6 @@ if [ -f "$SCRIPT_DIR/hooks/session-start-hook.sh" ]; then
     if [ ! -f "$SETTINGS_FILE" ]; then
         echo '{}' > "$SETTINGS_FILE"
     fi
-
-    # Backup existing settings
-    cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup.$(date +%Y%m%d_%H%M%S)"
 
     # Use Python to merge the hook configuration
     python3 <<EOF

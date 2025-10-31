@@ -88,9 +88,6 @@ SETTINGS_FILE="$CLAUDE_CONFIG_DIR/settings.json"
 HOOK_PATH="$SCRIPT_DIR/hooks/session-start-hook.sh"
 
 if [ -f "$SETTINGS_FILE" ]; then
-    # Backup existing settings
-    cp "$SETTINGS_FILE" "$SETTINGS_FILE.backup.$(date +%Y%m%d_%H%M%S)"
-
     # Use Python to remove the hook
     python3 <<EOF
 import json
