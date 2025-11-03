@@ -3,14 +3,24 @@
 # This hook injects context at session start to ensure working memory is loaded
 
 cat <<'CONTEXT'
-🔧 SESSION START - Before responding to the user's request, use the kairun-working-memory-manager agent to check if .kairun/working-memory.md exists and load context from it. DO NOT use the Read tool directly on working memory - always use the specialized agent.
+🔧 SESSION START - Follow this workflow at the beginning of every session:
+
+1. **Load Context First**: Use the kairun-working-memory-manager agent to load .kairun/working-memory.md (backward-looking: what happened, decisions made, discoveries). Then read .kairun/plans-and-todos.md if it exists (forward-looking: what needs to happen, priorities, roadmap). DO NOT use the Read tool directly on working memory - always use the specialized agent.
 
 This provides critical context about:
 - Previous work and decisions
-- Current task status
+- Current task status and priorities
 - Architectural choices made
 - Key discoveries and insights
-- Next steps and open questions
+- Planned work and next steps
 
-Without loading this context first, you may duplicate work or make contradictory decisions.
+2. **Update Memory During Work**: Proactively use the kairun-working-memory-manager agent whenever:
+- Any code is changed or features implemented
+- New information is discovered about the codebase
+- Architectural or design decisions are made
+- Tasks are completed or bugs are fixed
+
+3. **Review Changes When Requested**: When the user asks for code review, use the kairun-review-orchestrator agent as the PRIMARY entry point. It will coordinate parallel security and code practice reviews.
+
+Without loading context first, you may duplicate work or make contradictory decisions.
 CONTEXT
