@@ -22,5 +22,11 @@ This provides critical context about:
 
 3. **Review Changes When Requested**: When the user asks for code review, use the kairun-review-orchestrator agent as the PRIMARY entry point. It will coordinate parallel security and code practice reviews.
 
+4. **Check for Serena MCP**: If serena MCP tools are available (check using ListMcpResourcesTool or look for mcp__serena__* tools), use them for semantic code navigation:
+- Use find_symbol to locate functions/classes by name instead of Grep
+- Use find_referencing_symbols to find where symbols are used
+- Use insert_after_symbol for precise code insertion
+- These tools are more efficient than reading entire files for large codebases
+
 Without loading context first, you may duplicate work or make contradictory decisions.
 CONTEXT
